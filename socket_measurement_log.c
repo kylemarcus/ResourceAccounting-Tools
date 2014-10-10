@@ -5,9 +5,13 @@
 #include <time.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 #define FILENAME_SIZE 64 
+#define SOCKET_BUFF_SIZE 1024
 #define LOG_DIR "log"
+#define PORT_NUM 4000
 
 int format_time_string(char *, size_t);
 
@@ -41,8 +45,86 @@ int main(int argc, const char * argv[])
     // Write socket log header
     fprintf(sfp, "#Time\t#0=reqest,1=respond\t#Name\t#PID\n");
 
-    fclose(sfp);
+    // Create server
+    int sockfd, newsockfd, clilen, n;
+    char buffer[SOCKET_BUFF_SIZE];
+    struct sockaddr_in serv_addr, cli_addr;
 
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+    {
+        perror("ERROR opening socket");
+        exit(EXIT_FAILURE);
+    }
+
+    // Not available in android kernel
+    /*
+    int optval = 1;
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval)) < 0)
+    {
+        perror("ERROR setting socket options");
+    }
+    */
+
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_addr.s_addr = INADDR_ANY;
+    serv_addr.sin_port = htons(PORT_NUM);
+
+    if (bind(sockfd, (struct sockaddr *) &serv_addr,
+                        sizeof(serv_addr)) < 0)
+    {
+        perror("ERROR on binding");
+        exit(EXIT_FAILURE);
+    }
+
+    listen(sockfd, 5);
+    clilen = sizeof(cli_addr);
+
+    // Server accept loop
+    while (1)
+    {
+        newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, 
+                                    &clilen);
+        if (newsockfd < 0)
+        {
+            perror("ERROR on accept");
+            close(newsockfd);
+            continue;
+        }
+
+        bzero(buffer, SOCKET_BUFF_SIZE);
+        if (read(newsockfd, buffer, SOCKET_BUFF_SIZE) < 0)
+        {
+            perror("ERROR reading from socket");
+            close(newsockfd);
+            continue;
+        }
+
+        char record_type[32];
+        int process_port = 0;
+        char process_tm_str[32];
+        if (sscanf(buffer, "%s|%i|%s", record_type, &process_port, process_tm_str) < 0)
+        {
+            perror("ERROR processing socket data");
+            close(newsockfd);
+            continue;
+        }
+
+        // TODO: get process name from port
+        // NOTE: needs losf so need to install busybox on Android device
+
+        double tm[2];
+        if (sscanf(process_tm_str, "%lf.%lf", &tm[0], &tm[1]) < 0)
+        {
+            perror("ERROR processing time socket data");
+            close(newsockfd);
+            continue;
+        }
+
+        // Note: 1000000000 ns = 1 second
+        double now_time = tm[0] + (tm[1] / 1000000000);
+    }
 }
 
 int format_time_string(char * buffer, size_t buffer_size)
