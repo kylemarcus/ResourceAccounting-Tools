@@ -140,7 +140,7 @@ int main(int argc, const char * argv[])
         sprintf(str_time, "%.6f", now_time - reference_time);
 
         // Write out records to file
-        if (fprintf(sfp, "%s\t%s\t%s\t%d\n", str_time, record_type, process_name, &process_pid) < 0)
+        if (fprintf(sfp, "%s\t%s\t%s\t%d\n", str_time, record_type, process_name, process_pid) < 0)
         {
             perror("ERROR writing to socket log");
             close(newsockfd);
