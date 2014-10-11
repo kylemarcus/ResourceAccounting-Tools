@@ -40,9 +40,9 @@ int main(int argc, const char * argv[])
 
     // Create log file
     char eventdevice_log_filename[FILENAME_SIZE] = LOG_DIR "/log_";
-    int filename_header_size = strlen(eventdevice_log_filename);
-    int rc = format_time_string(&eventdevice_log_filename[8], FILENAME_SIZE, filename_header_size);
-    sprintf(&eventdevice_log_filename[8+rc], "_eventdevice.log");
+    int skip = strlen(eventdevice_log_filename);
+    int rc = format_time_string(&eventdevice_log_filename[skip], FILENAME_SIZE, skip);
+    sprintf(&eventdevice_log_filename[skip+rc], "_eventdevice.log");
     FILE * edfp = fopen(eventdevice_log_filename,"w");
     if (edfp == NULL)
     {
