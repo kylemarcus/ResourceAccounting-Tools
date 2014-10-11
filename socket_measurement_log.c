@@ -13,10 +13,17 @@
 #define LOG_DIR "log"
 #define PORT_NUM 4000
 
+int get_process_name_pid(const int, char *, int *);
 int format_time_string(char *, size_t);
 
+/*
+ * Creates a server that listens for connections from
+ * gpsd with info about request and response times.
+ * Logs info to socket log files.
+ */
 int main(int argc, const char * argv[])
 {
+    double reference_time = 0;
 
     // Create log directory
     struct stat info;
@@ -57,7 +64,7 @@ int main(int argc, const char * argv[])
         exit(EXIT_FAILURE);
     }
 
-    // Not available in android kernel
+    // Not available in Android kernel
     /*
     int optval = 1;
     if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval)) < 0)
@@ -84,8 +91,7 @@ int main(int argc, const char * argv[])
     // Server accept loop
     while (1)
     {
-        newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, 
-                                    &clilen);
+        newsockfd = accept(sockfd, (struct sockaddr *)&cli_addr, &clilen);
         if (newsockfd < 0)
         {
             perror("ERROR on accept");
@@ -111,8 +117,14 @@ int main(int argc, const char * argv[])
             continue;
         }
 
-        // TODO: get process name from port
-        // NOTE: needs losf so need to install busybox on Android device
+        char process_name[32];
+        int process_pid = 0;
+        if (get_process_name_pid(process_port, process_name, &process_pid) < 0)
+        {
+            perror("ERROR processing name and pid");
+            close(newsockfd);
+            continue;
+        }
 
         double tm[2];
         if (sscanf(process_tm_str, "%lf.%lf", &tm[0], &tm[1]) < 0)
@@ -124,9 +136,59 @@ int main(int argc, const char * argv[])
 
         // Note: 1000000000 ns = 1 second
         double now_time = tm[0] + (tm[1] / 1000000000);
+        char str_time[64];
+        sprintf(str_time, "%.6f", now_time - reference_time);
+
+        // Write out records to file
+        if (fprintf(sfp, "%s\t%s\t%s\t%d\n", str_time, record_type, process_name, &process_pid) < 0)
+        {
+            perror("ERROR writing to socket log");
+            close(newsockfd);
+            continue;
+        }
+
+        close(newsockfd);
     }
 }
 
+/*
+ * Gets the PID and process name thats listening on a 
+ * specific port number, note that busybox needs
+ * to be installed with netstat and awk.
+ */
+int get_process_name_pid(const int port, char * name, int * pid)
+{
+    char command[128];
+    sprintf(command, "/system/busybox/netstat -apeen 2>/dev/null | awk '$4~/:%d/ {print $7}'", port);
+
+    FILE * fp = popen(command, "r");
+    if (fp == NULL)
+    {
+        perror("ERROR failed to run netstat command");
+        return -1;
+    }
+
+    char output[128];
+    if (fgets(output, sizeof(output)-1, fp) < 0)
+    {
+        perror("ERROR getting output from netstat");
+        return -1;
+    }
+
+    pclose(fp);
+
+    if (sscanf(output, "%s/%d", name, pid) < 0)
+    {
+        perror("ERROR processing netstat data");
+        return -1;
+    }
+
+    return 0;
+}
+
+/*
+ * Formats a time string to a specific format.
+ */
 int format_time_string(char * buffer, size_t buffer_size)
 {
     time_t timer;
