@@ -18,7 +18,7 @@ int main()
 	char command_i[]="i2cget -y 0 0x44 0x01 w";
 	char command_v[]="i2cget -y 0 0x44 0x02 w";
 	struct timespec now;
-	unsigned int microseconds = 10;
+	unsigned int microseconds = 10000;
 
 	while (keepRunning)
 	{
@@ -27,6 +27,8 @@ int main()
 		system(command_i);
 		system(command_v);
 		usleep(microseconds);
-	} 
+	}
+
 	return 0;
+
 }
