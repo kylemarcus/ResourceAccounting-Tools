@@ -1,7 +1,7 @@
 CC=/home/kmarcus2/Tools/toolchain/android/lib/bin/arm-linux-androideabi-gcc
 #CC=gcc
 
-objects = socket_measurement_log event_read_log
+objects = power_measurement_log socket_measurement_log event_read_log
 
 all: $(objects)
 
