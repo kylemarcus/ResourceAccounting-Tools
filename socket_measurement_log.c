@@ -11,7 +11,7 @@
 #define FILENAME_SIZE 64 
 #define SOCKET_BUFF_SIZE 1024
 #define LOG_DIR "log"
-#define PORT_NUM 4000
+#define PORT_NUM 40000
 
 int get_process_name_pid(const int, char *, int *);
 int format_time_string(char *, size_t);
@@ -51,6 +51,7 @@ int main(int argc, const char * argv[])
 
     // Write socket log header
     fprintf(sfp, "#Time\t#0=reqest,1=respond\t#Name\t#PID\n");
+    fflush(sfp);
 
     // Create server
     int sockfd, newsockfd, clilen, n;
@@ -88,6 +89,8 @@ int main(int argc, const char * argv[])
     listen(sockfd, 5);
     clilen = sizeof(cli_addr);
 
+    printf("Server listening on port %d\n", PORT_NUM);
+
     // Server accept loop
     while (1)
     {
@@ -98,6 +101,7 @@ int main(int argc, const char * argv[])
             close(newsockfd);
             continue;
         }
+        printf("Server accepted connection\n");
 
         bzero(buffer, SOCKET_BUFF_SIZE);
         if (read(newsockfd, buffer, SOCKET_BUFF_SIZE) < 0)
@@ -146,6 +150,7 @@ int main(int argc, const char * argv[])
             close(newsockfd);
             continue;
         }
+        fflush(sfp);
 
         close(newsockfd);
     }

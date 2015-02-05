@@ -53,6 +53,7 @@ int main(int argc, const char * argv[])
 
     // Write log header
     fprintf(edfp, "#Name\t#Open-time\t#PID\t#Latency\n");
+    fflush(edfp);
 
     // Open dev
     int dlfd = open(DEV_LOG, O_RDWR);
@@ -84,14 +85,14 @@ int main(int argc, const char * argv[])
 
     while (1)
     {
-        fprintf(edfp, "DEVICE_NAME\tOPEN_TIME\tPID\tLATENCY");
+        //fprintf(edfp, "DEVICE_NAME\tOPEN_TIME\tPID\tLATENCY");
         
         int dev;
         ndevices = 0;
         // NOTE: bug in ioctl LGETDEVS code that always 
         // increases dev and never decreases so we only
         // look at dev 0 or code will cause kernel panic
-        for (dev = 0; dev < ndevices; dev++)
+        for (dev = 0; dev <= ndevices; dev++)
         {
             struct user_event_log log;
             if (set_device_info(dlfd, dev, minors, &log) < 0)
@@ -100,7 +101,14 @@ int main(int argc, const char * argv[])
                 continue;
             }
 
-            // TODO: Write to log file
+            int i;
+            for (i=0; i<log.ncount; i++) {
+                fprintf(edfp, "%s \t %ld.%06ld \t %d \t %ld.%06ld \n",
+                              log.name, log.dev_opened_time.tv_sec, log.dev_opened_time.tv_usec,
+                              log.event_consumed[i].pid, log.avg.tv_sec, log.avg.tv_usec);
+            }
+            fflush(edfp);
+            
             // Not really sure why python module returns inside loop?
         }
 
