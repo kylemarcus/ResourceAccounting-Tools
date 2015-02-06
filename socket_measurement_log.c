@@ -160,11 +160,12 @@ int main(int argc, const char * argv[])
  * Gets the PID and process name thats listening on a 
  * specific port number, note that busybox needs
  * to be installed with netstat and awk.
+ * NOTE: the PATH env var needs to have buxybox bin included in path
  */
 int get_process_name_pid(const int port, char * name, int * pid)
 {
     char command[128];
-    sprintf(command, "/system/busybox/netstat -apeen 2>/dev/null | awk '$4~/:%d/ {print $7}'", port);
+    sprintf(command, "netstat -apeen 2>/dev/null | awk '$4~/:%d/ {print $7}'", port);
 
     FILE * fp = popen(command, "r");
     if (fp == NULL)
