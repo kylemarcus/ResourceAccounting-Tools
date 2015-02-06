@@ -12,6 +12,7 @@
 #define SOCKET_BUFF_SIZE 1024
 #define LOG_DIR "log"
 #define PORT_NUM 40000
+#define BUSYBOX_BIN "/data/local/busybox/"
 
 int get_process_name_pid(const int, char *, int *);
 int format_time_string(char *, size_t);
@@ -111,14 +112,18 @@ int main(int argc, const char * argv[])
             continue;
         }
 
-        char record_type[32];
+        int record_type = 0;
         int process_port = 0;
-        char process_tm_str[32];
-        if (sscanf(buffer, "%s|%i|%s", record_type, &process_port, process_tm_str) < 0)
+        int process_tm[2];
+        if (sscanf(buffer, "%d|%d|%d.%d", &record_type, &process_port, &process_tm[0], &process_tm[1]) < 0)
         {
             perror("ERROR processing socket data");
             close(newsockfd);
             continue;
+        }
+        else
+        {
+            printf("record type: %d, process port: %d\n", record_type, process_port);
         }
 
         char process_name[32];
@@ -130,21 +135,13 @@ int main(int argc, const char * argv[])
             continue;
         }
 
-        double tm[2];
-        if (sscanf(process_tm_str, "%lf.%lf", &tm[0], &tm[1]) < 0)
-        {
-            perror("ERROR processing time socket data");
-            close(newsockfd);
-            continue;
-        }
-
         // Note: 1000000000 ns = 1 second
-        double now_time = tm[0] + (tm[1] / 1000000000);
+        double now_time = process_tm[0] + (process_tm[1] / 1000000000.0);
         char str_time[64];
         sprintf(str_time, "%.6f", now_time - reference_time);
 
         // Write out records to file
-        if (fprintf(sfp, "%s\t%s\t%s\t%d\n", str_time, record_type, process_name, process_pid) < 0)
+        if (fprintf(sfp, "%s -- %d -- %s -- %d\n", str_time, record_type, process_name, process_pid) < 0)
         {
             perror("ERROR writing to socket log");
             close(newsockfd);
@@ -165,7 +162,7 @@ int main(int argc, const char * argv[])
 int get_process_name_pid(const int port, char * name, int * pid)
 {
     char command[128];
-    sprintf(command, "netstat -apeen 2>/dev/null | awk '$4~/:%d/ {print $7}'", port);
+    sprintf(command, BUSYBOX_BIN "netstat -apeen 2>/dev/null | awk '$4~/:%d/ {print $7}'", port);
 
     FILE * fp = popen(command, "r");
     if (fp == NULL)
@@ -183,7 +180,7 @@ int get_process_name_pid(const int port, char * name, int * pid)
 
     pclose(fp);
 
-    if (sscanf(output, "%s/%d", name, pid) < 0)
+    if (sscanf(output, "%d/%s", pid, name) < 0)
     {
         perror("ERROR processing netstat data");
         return -1;
