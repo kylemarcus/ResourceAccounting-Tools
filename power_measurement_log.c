@@ -26,6 +26,7 @@ int main()
 		printf("%lld.%.9ld\n", (long long) now.tv_sec, now.tv_nsec);
 		system(command_i);
 		system(command_v);
+		fflush(stdout);
 		usleep(microseconds);
 	}
 
