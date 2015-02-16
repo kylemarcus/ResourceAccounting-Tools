@@ -1,3 +1,6 @@
+export PATH=${PATH}:/data/local/busybox
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/data/local/gpsd-2.95/lib
+
 cd /data/local/busybox
 ./sh
 export  PATH=${PATH}:/data/local/busybox
@@ -5,6 +8,7 @@ export  PATH=${PATH}:/data/local/busybox
 cd /data/local/RA-Tools
 ./power_measurement_log.x > log/power.log
 ./socket_measurement_log.x
+./marker_log.x
 
 cd /data/local/gpsd-2.95
 sbin/gpsd -N -D 3 -F /data/local/tmp/gpsd.sock /dev/ttyUSB0
