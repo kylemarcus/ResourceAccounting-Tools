@@ -16,8 +16,12 @@ double last,now;
 // Create log file
 char sched_log_filename[FILENAME_SIZE] = "log/log_";
 char line[255];
-int seek,done_line,len;
+char * dummy;
+int seek,done_line,len,linecount;
 char ch;
+struct timespec stamp1, stamp2;
+long long time1,time2;
+double diff;
 int rc = format_time_string(&sched_log_filename[8], FILENAME_SIZE);
 sprintf(&sched_log_filename[8+rc], "_sched.log");
 FILE * log_file = fopen(sched_log_filename,"w");
@@ -29,28 +33,37 @@ if (log_file == NULL)
 }
 printf("Created sched log file: %s\n", sched_log_filename);
 
-
-system("export TPATH=\"/sys/kernel/debug/tracing\"");
-system("echo 0 > $TPATH/tracing_on");
-system("echo nop > $TPATH/current_tracer");
-system("echo > $TPATH/set_event");
-system("echo > $TPATH/trace");
-system("echo sched_switch > $TPATH/set_event");
-system("echo 1 > $TPATH/tracing_on");
+system("echo 0 > /sys/kernel/debug/tracing/tracing_on");
+system("echo nop > /sys/kernel/debug/tracing/current_tracer");
+system("echo > /sys/kernel/debug/tracing/set_event");
+system("echo > /sys/kernel/debug/tracing/trace");
+system("echo sched_switch > /sys/kernel/debug/tracing/set_event");
+system("echo 1 > /sys/kernel/debug/tracing/tracing_on");
 
 
 last=0;
 
 while (1)
 {
-   system("cat /sys/kernel/debug/tracing/trace > log/run_tmp.tmp");
-   fread = fopen("log/run_tmp.tmp", "r");
-
+   printf("----------\n");
+   clock_gettime(CLOCK_MONOTONIC, &stamp1);
+   time1=stamp1.tv_nsec/1000000;
+   time1+=stamp1.tv_sec*1000;
+   system("cat /sys/kernel/debug/tracing/trace > tmp.tmp");
+   clock_gettime(CLOCK_MONOTONIC, &stamp2);
+   time2=stamp2.tv_nsec/1000000;
+   time2+=stamp2.tv_sec*1000;
+   
+   diff= (time2 - time1);
+   printf("cat lasted %.3f seconds\n", diff/1000);
+   fread = fopen("tmp.tmp", "r");
+   printf("file opened\n");
+   linecount=0;
    while (!feof(fread))
    {
       seek=0;
       done_line=0;
-      while(!feof(fread)||done_line==0)
+      while(!feof(fread)&&done_line==0)
       {
          ch=fgetc(fread);
          if (ch=='\r' || ch=='\n')
@@ -58,7 +71,7 @@ while (1)
             line[seek]=0;
             done_line=1;
          }
-         else line[seek]=ch;
+         else line[seek++]=ch;
       }
       if (done_line==1)
       {
@@ -74,14 +87,14 @@ while (1)
              while(seek<len && (ch=line[seek++])!=' ');
              while(seek<len && (ch=line[seek++])==' ');
              now=0;
-             sscanf(&line[seek], "%f", &now);
+             now=strtod(&line[seek-1], &dummy);
              if (now>0)
              {
-                printf("got time: %f",now);
                 if (now>last)
                 {
                    last=now;
                    fprintf(log_file,"%s\n",line);
+                   linecount++;
                 }
              }
              else printf("wrong format in line:\n %s",line);
@@ -89,6 +102,8 @@ while (1)
       }
    }
    fflush(log_file);
+   printf("wrote %d lines to the log file\n",linecount);
+   fclose(fread);
    sleep(3);
 }
 
