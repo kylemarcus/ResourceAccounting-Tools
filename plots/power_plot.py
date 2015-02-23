@@ -2,6 +2,12 @@ import matplotlib.pyplot as plt
 from itertools import repeat
 import numpy as np
 
+def takeClosest(num,collection):
+   return min(collection,key=lambda x:abs(x-num))
+
+def closestIndex(num,a):
+	return min(range(len(a)), key=lambda i: abs(a[i]-num))
+
 #avg watts using r points to the left
 #and r points to the right of the point
 def AvgWatts(watts, r):
@@ -57,22 +63,26 @@ while True:
 	gi=int(gi,0)/10.0
 
 	#voltage GPS = 4.7v
-	gv = 47000.0
+	gv = 4700.0
 
 	#watts
 	boardWatts.append(bv*bi)
 	gpsWatts.append(gv*gi*1.3)
-	time.append(t)
+	time.append(float(t))
 
 f.close()
 
 boardAvgWatts = AvgWatts(boardWatts, 100)
 gpsAvgWatts = AvgWatts(gpsWatts, 100)
 
-plt.plot(time, boardAvgWatts, zorder=1, label='board') #bottom
+scale = 1000 # convert uW to mW
+boardAvgWatts = [x / scale for x in boardAvgWatts]
+gpsAvgWatts = [x / scale for x in gpsAvgWatts]
+
+#plt.plot(time, boardAvgWatts, zorder=1, label='board') #bottom
 plt.plot(time, gpsAvgWatts, zorder=2, label='gps') #bottom
 plt.grid(True)
-plt.ylabel('watts (uW)')
+plt.ylabel('watts (mW)') #uW - microWatts, mW uW/1000
 plt.xlabel('time (sec)')
 plt.title('Power Usage (inside -> outside -> inside)')
 
@@ -87,7 +97,8 @@ response = []
 for l in f:
 	response.append(float(l.strip().split()[-1]))
 
-m = np.mean(boardAvgWatts + gpsAvgWatts)
+#m = np.mean(boardAvgWatts + gpsAvgWatts)
+m = np.mean(gpsAvgWatts) * 0.9
 
 y = list(repeat(m, len(response)))
 
@@ -109,10 +120,51 @@ plt.plot([inside], [m*1.0], 'mo', markersize=10, zorder=6, label='went inside')
 
 # modeled gps power
 
-x = [550,     800,     800,     950,     950,     1200,    1200,    1350]
-y = [1850000, 1850000, 2000000, 2000000, 2200000, 2200000, 2000000, 2000000]
+groundState = 1850000
+searchingState = 2000000
+aquiredState = 2200000
 
-plt.plot(x, y, zorder=7, label='model power')
+x = []
+y = []
+
+#start
+requestIndex = closestIndex(request, time)
+#groundState = np.mean(gpsAvgWatts[:int(request)])
+groundState = np.mean(gpsAvgWatts[:requestIndex])
+x.append(time[0])
+y.append(groundState)
+
+#request gps
+outsideIndex = closestIndex(outside, time)
+firstResponseIndex = closestIndex(response[0], time)
+searchingState = (np.mean(gpsAvgWatts[requestIndex:outsideIndex])     * 0.2) + \
+                 (np.mean(gpsAvgWatts[outsideIndex:firstResponseIndex]) * 0.8)
+x.append(request)
+y.append(groundState)
+x.append(request)
+y.append(searchingState)
+
+#acquired gps fix
+insideIndex = closestIndex(inside, time)
+lastResponseIndex = closestIndex(response[-1], time)
+aquiredState = (np.mean(gpsAvgWatts[firstResponseIndex:insideIndex]) * 0.8) + \
+               (np.mean(gpsAvgWatts[insideIndex:lastResponseIndex]) * 0.2)
+x.append(response[0])
+y.append(searchingState)
+x.append(response[0])
+y.append(aquiredState)
+
+#lost gps
+x.append(response[-1])
+y.append(aquiredState)
+x.append(response[-1])
+y.append(searchingState)
+
+#end
+x.append(time[-1])
+y.append(searchingState)
+
+plt.plot(x, y, zorder=7, linewidth=6, label='RA Power Model')
 
 plt.legend()
 plt.show()
