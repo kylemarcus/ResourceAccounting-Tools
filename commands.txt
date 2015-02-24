@@ -1,5 +1,9 @@
+
+
+
 export PATH=${PATH}:/data/local/busybox
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/data/local/gpsd-2.95/lib
+cd /data/local/RA-Tools
 
 cd /data/local/busybox
 ./sh
