@@ -67,7 +67,7 @@ while True:
 
 	#watts
 	boardWatts.append(bv*bi)
-	gpsWatts.append(gv*gi*1.3)
+	gpsWatts.append(gv*gi)
 	time.append(float(t))
 
 f.close()
@@ -120,10 +120,6 @@ plt.plot([inside], [m*1.0], 'mo', markersize=10, zorder=6, label='went inside')
 
 # modeled gps power
 
-groundState = 1850000
-searchingState = 2000000
-aquiredState = 2200000
-
 x = []
 y = []
 
@@ -134,11 +130,14 @@ groundState = np.mean(gpsAvgWatts[:requestIndex])
 x.append(time[0])
 y.append(groundState)
 
+#TODO: dont use inside/outside points - make 2 graphs?
+
 #request gps
 outsideIndex = closestIndex(outside, time)
 firstResponseIndex = closestIndex(response[0], time)
-searchingState = (np.mean(gpsAvgWatts[requestIndex:outsideIndex])     * 0.2) + \
-                 (np.mean(gpsAvgWatts[outsideIndex:firstResponseIndex]) * 0.8)
+#searchingState = (np.mean(gpsAvgWatts[requestIndex:outsideIndex])     * 0.2) + \
+#                 (np.mean(gpsAvgWatts[outsideIndex:firstResponseIndex]) * 0.8)
+searchingState = np.mean(gpsAvgWatts[requestIndex:firstResponseIndex])
 x.append(request)
 y.append(groundState)
 x.append(request)
@@ -147,8 +146,9 @@ y.append(searchingState)
 #acquired gps fix
 insideIndex = closestIndex(inside, time)
 lastResponseIndex = closestIndex(response[-1], time)
-aquiredState = (np.mean(gpsAvgWatts[firstResponseIndex:insideIndex]) * 0.8) + \
-               (np.mean(gpsAvgWatts[insideIndex:lastResponseIndex]) * 0.2)
+#aquiredState = (np.mean(gpsAvgWatts[firstResponseIndex:insideIndex]) * 0.8) + \
+#               (np.mean(gpsAvgWatts[insideIndex:lastResponseIndex]) * 0.2)
+aquiredState = np.mean(gpsAvgWatts[firstResponseIndex:lastResponseIndex])
 x.append(response[0])
 y.append(searchingState)
 x.append(response[0])
@@ -165,6 +165,28 @@ x.append(time[-1])
 y.append(searchingState)
 
 plt.plot(x, y, zorder=7, linewidth=6, label='RA Power Model')
+
+# android gps power model
+
+androidGpsOffState = 140
+androidGpsOnState = 165
+
+x = []
+y = []
+
+x.append(request)
+y.append(androidGpsOffState)
+
+x.append(request)
+y.append(androidGpsOnState)
+
+x.append(response[-1])
+y.append(androidGpsOnState)
+
+x.append(response[-1])
+y.append(androidGpsOffState)
+
+plt.plot(x, y, zorder=6, linewidth=6, label='Android Power Model')
 
 plt.legend()
 plt.show()
