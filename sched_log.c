@@ -49,14 +49,20 @@ while (1)
    clock_gettime(CLOCK_MONOTONIC, &stamp1);
    time1=stamp1.tv_nsec/1000000;
    time1+=stamp1.tv_sec*1000;
-   system("cat /sys/kernel/debug/tracing/trace > tmp.tmp");
+   system("cat /sys/kernel/debug/tracing/trace > sched.tmp");
    clock_gettime(CLOCK_MONOTONIC, &stamp2);
    time2=stamp2.tv_nsec/1000000;
    time2+=stamp2.tv_sec*1000;
    
    diff= (time2 - time1);
    printf("cat lasted %.3f seconds\n", diff/1000);
-   fread = fopen("tmp.tmp", "r");
+   fread = fopen("sched.tmp", "r");
+   if (fread == NULL)
+   {
+       perror("ERROR opening the file");
+       exit(EXIT_FAILURE);
+   }
+ 
    printf("file opened\n");
    linecount=0;
    while (!feof(fread))
