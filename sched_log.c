@@ -103,7 +103,32 @@ while (1)
                    linecount++;
                 }
              }
-             else printf("wrong format in line:\n %s",line);
+             else//exception is "      GL updater"           
+             {
+                //printf(".\nencountering a bad line: \n%s\n",line);
+                while(seek<len && (ch=line[seek++])!=' ');
+                while(seek<len && (ch=line[seek++])==' ');
+                now=0;
+                now=strtod(&line[seek-1], &dummy);
+                if (now>0)
+                {
+                   //printf("found the time\n");
+                   if (now>last)
+                   {
+                      last=now;
+                      if (memcmp(line,"      GL updater",16)==0) 
+                      {
+                         //printf("comparison correct. ");
+                         line[8]='_';
+                         //printf("modified line:\n%s\n",line);
+                      }
+                      //else printf("comparison incorrect.\n.\n%s\n%c\n%c",line,line[8],line[9]);
+                      fprintf(log_file,"%s\n",line);
+                      linecount++;
+                   }
+                }
+                else printf("wrong format in line:\n %s\n",line);
+             }
           }
       }
    }
