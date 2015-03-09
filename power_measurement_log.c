@@ -27,8 +27,9 @@ int main()
 	{
 		clock_gettime(CLOCK_MONOTONIC, &now1);
 		printf("%lld.%.9ld\n", (long long) now1.tv_sec, now1.tv_nsec);
-		system(command_it);
-		system(command_vt);
+		//system(command_it);
+		//system(command_vt);
+		printf("0x00\n0x00\n");
 		system(command_ig);
 //		system(command_vg);
 		clock_gettime(CLOCK_MONOTONIC, &now2);

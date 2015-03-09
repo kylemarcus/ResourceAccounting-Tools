@@ -3,9 +3,9 @@ from itertools import repeat
 import numpy as np
 import math
 
-logfilename='logs/2015-03-04/power_log_boot_6_HDMImouse_1_2015-03-04-00-18.log'
-averageConstant = 50
-offsettime=0
+logfilename='power_log_boot_6_HDMImouse_2_2015-03-04-00-18.log'
+averageConstant = 100
+offsettime=210
 
 def takeClosest(num,collection):
    return min(collection,key=lambda x:abs(x-num))
