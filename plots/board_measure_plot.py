@@ -2,10 +2,12 @@ import matplotlib.pyplot as plt
 from itertools import repeat
 import numpy as np
 import math
+import sys
 
-logfilename='power_log_boot_6_HDMImouse_2_2015-03-04-00-18.log'
-averageConstant = 100
-offsettime=210
+logfilename=sys.argv[1]				#defualt: 'log.log'
+averageConstant = int(sys.argv[2])		#default: 1  (1,10,50,100)
+offsettime=int(sys.argv[3])			#default: 0  (starting of recording window)
+duration=int(sys.argv[4])			#default: a huge number like 10000  (duration of recording window)
 
 def takeClosest(num,collection):
    return min(collection,key=lambda x:abs(x-num))
@@ -73,6 +75,12 @@ delays = []
 voltage = []
 current = []
 
+print "-----------------"
+print "looking in "+logfilename
+print "from time "+str(offsettime)+" for "+str(duration)+" seconds"
+print "averaging results for each "+str(averageConstant)+" samples"
+
+
 while True:
 
 	#read raw data
@@ -82,20 +90,27 @@ while True:
 	d = f.readline().strip() #delay
 	if not t: break
 
-	#current
 	try:
-		bi=bi.split("x")[1]
+		temptime=float(t)
+		tempd=int(d)
 	except:
-		print "error at "+bi
+		print "---------------"
+		print "error at"
+		print bi
+		print bv
+		break
+
+	if float(t)<offsettime: continue
+	if float(t)>offsettime+duration: break
+
+	#current
+	bi=bi.split("x")[1]
 	bi="0x"+bi[2]+bi[3]+bi[0]+bi[1]
 	bi=int(bi,0)/10.0
 	current.append(bi)
 
 	#voltage
-	try:
-		bv=bv.split("x")[1]
-	except:
-		print "error at "+bv
+	bv=bv.split("x")[1]
 	bv="0x"+bv[2]+bv[3]+bv[0]+bv[1]
 	bv=int(bv,0)/2.0
 	voltage.append(bv)
@@ -133,9 +148,9 @@ plt.grid(True)
 #plt.ylabel('watts (mW)') #uW - microWatts, mW uW/1000
 plt.ylabel('current (mA)')
 plt.xlabel('time (sec)')
-plt.title('Power Usage (12V power supply)')
+plt.title('Current Drawn')
 
-plt.legend()
+#plt.legend()
 #plt.show()
 plt.savefig("AVG-"+str(averageConstant),dpi=600,format="png")
 
