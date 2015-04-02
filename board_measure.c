@@ -6,7 +6,7 @@
 int main()
 {
 
-	char command_config[]="i2cset -y 0 0x44 0x00 0xed39 w";
+	char command_config[]="i2cset -y 0 0x44 0x00 0xe539 w";//16 samples, only shunt sampling
 	char command_it[]="i2cget -y 0 0x44 0x01 w";
 	char command_vt[]="i2cget -y 0 0x44 0x02 w";
 	struct timespec now1,now2,start;
@@ -27,8 +27,8 @@ int main()
 		diff1=now2.tv_nsec-now1.tv_nsec;
 		if (diff1<0) diff1+=1000000000;
 		//printf("%lld\n", (diff1/1000000));
-		if (diff1<17000000)
-			usleep(17000-(diff1/1000));
+		if (diff1<10000000)
+			usleep(10000-(diff1/1000));
 		clock_gettime(CLOCK_MONOTONIC, &now2);
 		diff1=now2.tv_nsec-now1.tv_nsec;
 		if (diff1<0) diff1+=1000000000;

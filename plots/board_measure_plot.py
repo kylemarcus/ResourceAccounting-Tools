@@ -9,6 +9,9 @@ averageConstant = int(sys.argv[2])		#default: 1  (1,10,50,100)
 offsettime=int(sys.argv[3])			#default: 0  (starting of recording window)
 duration=int(sys.argv[4])			#default: a huge number like 10000  (duration of recording window)
 
+coeff=[5,4,3,2,1]
+#coeff=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+
 def takeClosest(num,collection):
    return min(collection,key=lambda x:abs(x-num))
 
@@ -19,22 +22,23 @@ def closestIndex(num,a):
 #and r points to the right of the point
 def AvgWatts(watts, r):
 	wattsAvg = []
+	
 	for x in range(len(watts)):
-	    avg = watts[x]
-	    count = 1
+	    avg = watts[x]*coeff[0]
+	    count = coeff[0]
 	    for i in range(1,r):
 	        try:
-	            avg += watts[x-i]
-	            count += 1
+	            avg += watts[x-i]*coeff[i]
+	            count += coeff[i]
 	        except:
 	            pass
 	        try:
-	            avg += watts[x+i]
-	            count += 1
+	            avg += watts[x+i]*coeff[i]
+	            count += coeff[i]
 	        except:
 	            pass
 	    avg = avg/count
-	    wattsAvg += [avg]
+	    wattsAvg+=[avg]
 	return wattsAvg
 
 def PrintStats(array):
@@ -84,9 +88,9 @@ print "averaging results for each "+str(averageConstant)+" samples"
 while True:
 
 	#read raw data
-	bi = f.readline().strip() #board current
-	bv = f.readline().strip() #board voltage
 	t = f.readline().strip() #time
+	bv = f.readline().strip() #board voltage
+	bi = f.readline().strip() #board current
 	d = f.readline().strip() #delay
 	if not t: break
 
@@ -109,14 +113,14 @@ while True:
 	bi=int(bi,0)/10.0
 	current.append(bi)
 
-	#voltage
-	bv=bv.split("x")[1]
-	bv="0x"+bv[2]+bv[3]+bv[0]+bv[1]
-	bv=int(bv,0)/2.0
-	voltage.append(bv)
+	#voltage (assuming to be constant)
+	#bv=bv.split("x")[1]
+	#bv="0x"+bv[2]+bv[3]+bv[0]+bv[1]
+	#bv=int(bv,0)/2.0
+	#voltage.append(bv)
 
 	#watts
-	boardWatts.append(bv*bi)
+	#boardWatts.append(bv*bi)
 	time.append(float(t)-offsettime) #remove bias
 	
 	#delay
@@ -127,8 +131,8 @@ f.close()
 print "------------------------------"
 print "Total number of entries: "+str(len(time))
 print "------------------------------"
-print "Stats for Voltage:"
-PrintStats (voltage)
+#print "Stats for Voltage:" #assume to be constant
+#PrintStats (voltage)
 print "Stats for Current:"
 PrintStats (current)
 print "Stats for Delay:"
@@ -138,7 +142,13 @@ PrintStats (delays)
 #scale = 1000 # convert uW to mW
 #boardAvgWatts = [x / scale for x in boardAvgWatts]
 
-AvgCurr=AvgWatts(current,averageConstant)
+
+
+for x in range (averageConstant):
+	AvgCurr=AvgWatts(current,5)
+	current=AvgCurr
+#AvgCurr=AvgWatts(current,averageConstant)
+
 print "Stats for Averaged Current ("+str(averageConstant)+"):"
 PrintStats (AvgCurr)
 
