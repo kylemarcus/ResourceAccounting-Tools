@@ -16,6 +16,8 @@ int main()
 	system(command_config);
 	clock_gettime(CLOCK_MONOTONIC, &start);
 	clock_gettime(CLOCK_MONOTONIC, &now1);
+
+	printf("#start of the time (sec): %lld\n", (long long) start.tv_sec);
 	while (1)
 	{
 		printf("%lld.%.9ld\n", (long long) now1.tv_sec-start.tv_sec, now1.tv_nsec);

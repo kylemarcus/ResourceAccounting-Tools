@@ -6,12 +6,25 @@ import sys
 
 logfilename=sys.argv[1]				#defualt: 'log.log'
 averageConstant = int(sys.argv[2])		#default: 1  (1,10,50,100)
-backshift=float(sys.argv[3])			#default: 0  (difference of timeing among 2 boards)
+backshift=float(sys.argv[3])                    #default: 0  (difference of timeing among 2 boards)
 offsettime=float(sys.argv[4])			#default: 0  (starting of recording window)
 duration=float(sys.argv[5])			#default: a huge number like 10000  (duration of recording window)
 
-#coeff=[3,2,1]
-coeff=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+wifi_offset=223.2
+wifi_active=45.0 
+wifi_calib=1.8 # (45 for wifi transmission and 1.8 for calibrating the model)
+wifi_utilization=0.49342 #(551.941122 to 693.260723)
+
+
+wifi_t0=0.0
+wifi_t1=0.0
+wifi_t2=0.0999
+wifi_t3=0.1
+
+#wifi_t0-=offsettime
+#wifi_t1-=offsettime
+#wifi_t2-=offsettime
+#wifi_t3-=offsettime
 
 def takeClosest(num,collection):
    return min(collection,key=lambda x:abs(x-num))
@@ -25,17 +38,17 @@ def AvgWatts(watts, r):
 	wattsAvg = []
 	
 	for x in range(len(watts)):
-	    avg = watts[x]*coeff[0]
-	    count = coeff[0]
+	    avg = watts[x]
+	    count = 1
 	    for i in range(1,r):
 	        try:
-	            avg += watts[x-i]*coeff[i]
-	            count += coeff[i]
+	            avg += watts[x-i]
+	            count += 1
 	        except:
 	            pass
 	        try:
-	            avg += watts[x+i]*coeff[i]
-	            count += coeff[i]
+	            avg += watts[x+i]
+	            count += 1
 	        except:
 	            pass
 	    avg = avg/count
@@ -146,24 +159,101 @@ PrintStats (delays)
 #boardAvgWatts = [x / scale for x in boardAvgWatts]
 
 
-
-#for x in range (averageConstant):
-#	AvgCurr=AvgWatts(current,3)
-#	current=AvgCurr
 AvgCurr=AvgWatts(current,averageConstant)
 
 print "Stats for Averaged Current ("+str(averageConstant)+"):"
 PrintStats (AvgCurr)
 
 #plt.plot(time, boardAvgWatts, zorder=1, label='board') #bottom
-plt.plot(time, AvgCurr, label='awake state')
+plt.plot(time, AvgCurr, label='measured current')
 plt.grid(True)
 #plt.ylabel('watts (mW)') #uW - microWatts, mW uW/1000
 plt.ylabel('current (mA)')
 plt.xlabel('time (sec)')
-plt.title('Current Drawn')
+plt.title('Network transfer usage')
 
-#plt.legend()
+
+#modeled
+x=[]
+y=[]
+
+
+#x.append(wifi_t0)
+#y.append(wifi_offset)
+
+#x.append(wifi_t1)
+#y.append(wifi_offset)
+x.append(wifi_t1)
+y.append(wifi_offset+wifi_active*wifi_calib*wifi_utilization)
+
+x.append(wifi_t2)
+y.append(wifi_offset+wifi_active*wifi_calib*wifi_utilization)
+#x.append(wifi_t2)
+#y.append(wifi_offset)
+
+#x.append(wifi_t3)
+#y.append(wifi_offset)
+plt.plot(x, y, zorder=6, linewidth=3, label='model',color='green')
+
+
+has_cut=0
+has_skip=0
+
+ra_x=[]
+ra_y=[]
+
+line_count=0
+ra_points=open("timings_RA.txt","r")
+
+for line in ra_points:
+    tmpx1=float(line.split()[0])-offsettime
+    tmpx2=float(line.split()[1])-offsettime
+
+    if tmpx2 < 0:
+        if has_skip==0:
+            print "skipping some lines"
+        has_skip=1
+        continue
+
+    if tmpx1 < 0:
+        print "changed starting point from "+str(tmpx1) + "(originally was "+str(tmpx1+offsettime) +") to 0"
+        tmpx1=0
+
+    if tmpx1 > duration:
+        if has_cut==0:
+            print "cut before some lines"
+        has_cut=1
+        continue
+
+    if tmpx2> duration:
+        print "changed end point from "+str(tmpx2) + "(originally was "+str(tmpx2+offsettime) +") to "+str(duration)
+        tmp2=duration
+
+    ra_x.append(tmpx1)
+    ra_y.append(wifi_offset)
+    
+    ra_x.append(tmpx1)
+    ra_y.append(wifi_offset+wifi_active*wifi_calib)
+
+    
+    ra_x.append(tmpx2)
+    ra_y.append(wifi_offset+wifi_active*wifi_calib)
+
+    ra_x.append(tmpx2)
+    ra_y.append(wifi_offset)
+'''    
+    line_count+=1
+
+    if line_count==1000:
+        plt.plot(ra_x, ra_y, zorder=6, linewidth=1, label='RA',color='red')
+        ra_x=[]
+        ra_y=[]
+        line_count=0
+'''
+
+plt.plot(ra_x, ra_y, zorder=6, linewidth=1, label='RA',color='red')
+
+plt.legend()
 #plt.show()
 plt.savefig("AVG-"+str(averageConstant),dpi=600,format="png")
 
