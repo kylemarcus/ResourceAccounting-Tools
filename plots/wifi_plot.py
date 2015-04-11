@@ -18,7 +18,7 @@ wifi_utilization=0.49342 #(551.941122 to 693.260723)
 
 wifi_t0=0.0
 wifi_t1=0.0
-wifi_t2=0.0999
+wifi_t2=0.0499
 wifi_t3=0.1
 
 #wifi_t0-=offsettime
@@ -165,14 +165,14 @@ print "Stats for Averaged Current ("+str(averageConstant)+"):"
 PrintStats (AvgCurr)
 
 #plt.plot(time, boardAvgWatts, zorder=1, label='board') #bottom
-plt.plot(time, AvgCurr, label='measured current')
+plt.plot(time, AvgCurr, label='measured')
 plt.grid(True)
 #plt.ylabel('watts (mW)') #uW - microWatts, mW uW/1000
 plt.ylabel('current (mA)')
 plt.xlabel('time (sec)')
 plt.title('Network transfer usage')
 
-
+'''
 #modeled
 x=[]
 y=[]
@@ -193,14 +193,19 @@ y.append(wifi_offset+wifi_active*wifi_calib*wifi_utilization)
 
 #x.append(wifi_t3)
 #y.append(wifi_offset)
-plt.plot(x, y, zorder=6, linewidth=3, label='model',color='green')
 
+plt.plot(x, y, zorder=6, linewidth=3,color='green')
+x=[]
+y=[]
 
 has_cut=0
 has_skip=0
 
+
 ra_x=[]
 ra_y=[]
+ra_inactive_x=[]
+ra_inactive_y=[]
 
 line_count=0
 ra_points=open("timings_RA.txt","r")
@@ -230,30 +235,51 @@ for line in ra_points:
         tmp2=duration
 
     ra_x.append(tmpx1)
-    ra_y.append(wifi_offset)
-    
-    ra_x.append(tmpx1)
     ra_y.append(wifi_offset+wifi_active*wifi_calib)
+
+    ra_inactive_x.append(tmpx1)
+    ra_inactive_y.append(wifi_offset)
+    
+    if (line!=0):
+       plt.plot(ra_inactive_x,ra_inactive_y,zorder=6,linewidth=1,color='magenta')
+       ra_inactive_x=[]
+       ra_inactive_y=[]
 
     
     ra_x.append(tmpx2)
     ra_y.append(wifi_offset+wifi_active*wifi_calib)
 
-    ra_x.append(tmpx2)
-    ra_y.append(wifi_offset)
+    ra_inactive_x.append(tmpx2)
+    ra_inactive_y.append(wifi_offset)
+
+    plt.plot(ra_x, ra_y, zorder=6, linewidth=1,color='red')
+    ra_x=[]
+    ra_y=[]
+
+ra_x.append(0)
+ra_x.append(0)
+ra_y.append(wifi_offset)
+ra_y.append(wifi_offset)
+
+plt.plot(ra_x, ra_y, zorder=6, linewidth=1,label='RA-active',color='red')
+plt.plot(ra_x, ra_y, zorder=6, linewidth=1,label='RA-inactive',color='magenta')
+plt.plot(ra_x, ra_y, zorder=6, linewidth=2, label='effective',color='green')
+
+'''
 '''    
     line_count+=1
 
-    if line_count==1000:
+    if line_count%1000==0:
         plt.plot(ra_x, ra_y, zorder=6, linewidth=1, label='RA',color='red')
         ra_x=[]
         ra_y=[]
         line_count=0
 '''
 
-plt.plot(ra_x, ra_y, zorder=6, linewidth=1, label='RA',color='red')
 
 plt.legend()
 #plt.show()
+#plt.ylim([220,360])
+
 plt.savefig("AVG-"+str(averageConstant),dpi=600,format="png")
 
